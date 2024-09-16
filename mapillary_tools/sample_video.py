@@ -369,3 +369,4 @@ def _sample_single_video_by_distance(
             if video_metadata.model:
                 exif_edit.add_model(video_metadata.model)
             exif_edit.write()
+

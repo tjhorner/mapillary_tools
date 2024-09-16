@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+appdirs = ">=1.4.4,<2.0.0"
+construct = ">=2.10.0,<3.0.0"
+exifread = "==2.3.2"
+piexif = "==1.1.3"
+gpxpy = "<1.6.0,>=1.5.0"
+pynmea2 = ">=1.12.0,<2.0.0"
+requests = ">=2.20.0,<3.0.0"
+tqdm = "<5.0,>=4.0"
+typing-extensions = "*"
+jsonschema = "~=4.17.3"
+dataclasses = "*"
+python-xmp-toolkit = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.7"

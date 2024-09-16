@@ -207,6 +207,71 @@ class FFMPEG:
         middle = length // 2
         return f"if(lt(n\\,{ sorted_frame_indices[middle] })\\,{ self.generate_binary_search(sorted_frame_indices[:middle]) }\\,{ self.generate_binary_search(sorted_frame_indices[middle:]) })"
 
+    def _generate_360_filter(
+        self,
+        select_expr: str,
+    ) -> str:
+        return f"""
+        [0:0]{select_expr},crop=128:1344:x=624:y=0,format=yuvj420p,
+        geq=
+        lum='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        cb='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        cr='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        a='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        interpolation=b,crop=64:1344:x=0:y=0,format=yuvj420p,scale=96:1344[crop],
+        [0:0]{select_expr},crop=624:1344:x=0:y=0,format=yuvj420p[left], 
+        [0:0]{select_expr},crop=624:1344:x=752:y=0,format=yuvj420p[right], 
+        [left][crop]hstack[leftAll], 
+        [leftAll][right]hstack[leftDone],
+
+        [0:0]{select_expr},crop=1344:1344:1376:0[middle],
+
+        [0:0]{select_expr},crop=128:1344:x=3344:y=0,format=yuvj420p,
+        geq=
+        lum='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        cb='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        cr='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        a='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        interpolation=b,crop=64:1344:x=0:y=0,format=yuvj420p,scale=96:1344[cropRightBottom],
+        [0:0]{select_expr},crop=624:1344:x=2720:y=0,format=yuvj420p[leftRightBottom], 
+        [0:0]{select_expr},crop=624:1344:x=3472:y=0,format=yuvj420p[rightRightBottom], 
+        [leftRightBottom][cropRightBottom]hstack[rightAll], 
+        [rightAll][rightRightBottom]hstack[rightBottomDone],
+        [leftDone][middle]hstack[leftMiddle],
+        [leftMiddle][rightBottomDone]hstack[bottomComplete],
+
+
+
+        [0:4]{select_expr},crop=128:1344:x=624:y=0,format=yuvj420p,
+        geq=
+        lum='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        cb='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        cr='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        a='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        interpolation=n,crop=64:1344:x=0:y=0,format=yuvj420p,scale=96:1344[leftTopCrop],
+        [0:4]{select_expr},crop=624:1344:x=0:y=0,format=yuvj420p[firstLeftTop], 
+        [0:4]{select_expr},crop=624:1344:x=752:y=0,format=yuvj420p[firstRightTop], 
+        [firstLeftTop][leftTopCrop]hstack[topLeftHalf], 
+        [topLeftHalf][firstRightTop]hstack[topLeftDone],
+
+        [0:4]{select_expr},crop=1344:1344:1376:0[TopMiddle],
+
+        [0:4]{select_expr},crop=128:1344:x=3344:y=0,format=yuvj420p,
+        geq=
+        lum='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        cb='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        cr='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        a='if(between(X, 0, 64), (p((X+64),Y)*(((X+1))/65))+(p(X,Y)*((65-((X+1)))/65)), p(X,Y))':
+        interpolation=n,crop=64:1344:x=0:y=0,format=yuvj420p,scale=96:1344[TopcropRightBottom],
+        [0:4]{select_expr},crop=624:1344:x=2720:y=0,format=yuvj420p[TopleftRightBottom], 
+        [0:4]{select_expr},crop=624:1344:x=3472:y=0,format=yuvj420p[ToprightRightBottom], 
+        [TopleftRightBottom][TopcropRightBottom]hstack[ToprightAll], 
+        [ToprightAll][ToprightRightBottom]hstack[ToprightBottomDone],
+        [topLeftDone][TopMiddle]hstack[TopleftMiddle],
+        [TopleftMiddle][ToprightBottomDone]hstack[topComplete],
+
+        [bottomComplete][topComplete]vstack[complete], [complete]v360=eac:e:interp=cubic,crop=4032:2388:x=0:y=0[v]"""
+
     def extract_specified_frames(
         self,
         video_path: Path,
@@ -248,7 +313,7 @@ class FFMPEG:
 
         with tempfile.NamedTemporaryFile(mode="w+", delete=delete) as select_file:
             try:
-                select_file.write(f"select={eqs}")
+                select_file.write(self._generate_360_filter(f"select={eqs}"))
                 select_file.flush()
                 # If not close, error "The process cannot access the file because it is being used by another process"
                 if not delete:
@@ -259,17 +324,18 @@ class FFMPEG:
                     # input 0
                     *["-i", str(video_path)],
                     # select stream
-                    *stream_selector,
+                    # *stream_selector,
                     # filter videos
                     *[
-                        *["-filter_script:v", select_file.name],
+                        *["-filter_complex_script", select_file.name],
+                        *["-map", "[v]"],
                         # Each frame is passed with its timestamp from the demuxer to the muxer
                         *["-vsync", "0"],
                         # vsync is deprecated by fps_mode,
                         # but fps_mode is not avaliable on some older versions ;(
                         # *[f"-fps_mode:{stream_specifier}", "passthrough"],
                         # Set the number of video frames to output
-                        *[f"-frames:{stream_specifier}", str(len(frame_indices))],
+                        *[f"-frames", str(len(frame_indices))],
                         # Disabled because it doesn't always name the sample images as expected
                         # For example "select(n\,1)" we expected the first sample to be IMG_001.JPG
                         # but it could be IMG_005.JPG
@@ -278,10 +344,10 @@ class FFMPEG:
                         # *["-frame_pts", "1"],
                     ],
                     # video quality level (or the alias -q:v)
-                    *[f"-qscale:{stream_specifier}", "2"],
+                    # *[f"-qscale:{stream_specifier}", "2"],
                     # -q:v=1 is the best quality but larger image sizes
                     # see https://stackoverflow.com/a/10234065
-                    # *["-qscale:v", "1", "-qmin", "1"],
+                    *["-qscale:v", "1", "-qmin", "1"],
                     # output
                     ouput_template,
                 ]
